@@ -1,0 +1,45 @@
+---
+# Install a datacollector with parameters specified in vars files.
+- hosts: datacollectors
+  tags:
+    - install
+  roles:
+    - williamyeh.oracle-java
+    - streamsets.datacollector
+
+# Normally you would configure everything at install time, but this
+# is a way to demonstrate being able to change settings on the fly if
+# ever necessary.
+- hosts: datacollectors
+  tags:
+    - configure
+  handlers:
+    - name: restart datacollector
+      service: name=datacollector state=restarted
+  tasks:
+    - name: change http port
+      sdc_config: name=http.port value=18640 dest=/etc/streamsets/datacollector/sdc.properties
+      notify: restart datacollector
+
+# Example of deploying a developed pipeline, starting it, and verifying
+# that it is in the desired state (e.g. RUNNING)
+- hosts: datacollectors
+  tags:
+    - deploy
+  tasks:
+    - name: copy test pipeline to remote
+      copy: src=files/test.json dest=/tmp/test.json
+    - name: ensure pipeline stopped
+      sdc_pipeline: action=stop pipeline=test url=http://localhost:18640
+    # - name: ensure pipeline doesn't already exist
+    #   sdc_pipeline: action=delete pipeline=test url=http://localhost:18640
+    - name: deploy test pipeline
+      sdc_pipeline: action=import pipeline=test src=/tmp/test.json url=http://localhost:18640
+    - name: start test pipeline
+      sdc_pipeline: action=start pipeline=test url=http://localhost:18640
+    - name: verify pipeline is running
+      sdc_pipeline: action=status pipeline=test url=http://localhost:18640
+      register: test_status
+    - name: fail if pipeline is not running
+      fail: msg="The pipeline was in the state {{ test_status.result.status }}"
+      when: test_status.result.status != 'RUNNING'

@@ -1,0 +1,5 @@
+---
+jmx_enable: true
+jmx_port: 3333
+jmx_authenticate: false
+jmx_ssl: false
