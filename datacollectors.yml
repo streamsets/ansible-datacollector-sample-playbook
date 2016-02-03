@@ -24,6 +24,8 @@
 # Example of deploying a developed pipeline, starting it, and verifying
 # that it is in the desired state (e.g. RUNNING)
 - hosts: datacollectors
+  environment:
+    - SDC_DIST: /opt/streamsets/datacollector/current
   tags:
     - deploy
   tasks:
